@@ -7,11 +7,11 @@
     <meta name="theme-color" content="#0056b3">
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
-        body { background: #eef2f5; margin: 0; padding: 0; }
+        body { background: #eef2f5; margin: 0; padding: 0; display: flex; flex-direction: column; min-height: 100vh; }
         header { background: #0056b3; color: white; padding: 15px; text-align: center; }
         header h1 { margin: 0; font-size: 20px; }
         header p { margin: 5px 0 0; font-size: 13px; opacity: 0.9; }
-        .container { max-width: 950px; margin: 15px auto; padding: 0 15px; }
+        .container { max-width: 950px; margin: 15px auto; padding: 0 15px; flex: 1; width: 100%; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); margin-bottom: 20px; }
         h2 { color: #0056b3; font-size: 18px; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 8px; }
         .form-group { margin-bottom: 12px; }
@@ -22,6 +22,7 @@
         .btn-red { background: #dc3545; width: auto; padding: 6px 12px; font-size: 13px; }
         .btn-upi { background: #6f42c1; color: white; text-decoration: none; padding: 5px 10px; border-radius: 4px; font-size: 12px; display: inline-block; margin-right: 4px; }
         .btn-receipt { background: #17a2b8; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+        .btn-broadcast { background: #ffc107; color: #000; font-weight: bold; padding: 12px; border: none; border-radius: 5px; width: 100%; cursor: pointer; margin-bottom: 10px; font-size: 15px; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background: #0056b3; color: white; }
@@ -30,10 +31,15 @@
         .hidden { display: none !important; }
         .table-responsive { overflow-x: auto; }
         .section-box { margin-bottom: 25px; border-top: 4px solid #0056b3; }
+        .toggle-link { text-align: center; margin-top: 10px; font-size: 14px; color: #0056b3; cursor: pointer; text-decoration: underline; }
         
+        footer { background: #222; color: white; text-align: center; padding: 15px; font-size: 14px; margin-top: auto; }
+        footer span { color: #4dc3ff; font-weight: bold; }
+
         #receiptModal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:1000; }
         .receipt-card { background:white; width:90%; max-width:400px; padding:20px; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.2); }
         .receipt-header { text-align:center; border-bottom:2px dashed #ccc; padding-bottom:10px; margin-bottom:10px; }
+        .qr-box { text-align: center; margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 6px; border: 1px solid #ddd; }
     </style>
 </head>
 <body>
@@ -72,27 +78,67 @@
         </div>
     </div>
 
-    <!-- 2. CONTROLLER LOGIN SECTION -->
-    <div id="loginCard" class="card section-box">
-        <h2>ग्राम कंट्रोलर लॉगिन</h2>
-        <div class="form-group">
-            <label>कंट्रोलर ईमेल ID:</label>
-            <input type="email" id="loginEmail" placeholder="controller@mpjal.in">
+    <!-- 2. CONTROLLER AUTH SECTION (LOGIN / REGISTER / RESET) -->
+    <div id="authCard" class="card section-box">
+        <!-- Login Form -->
+        <div id="loginFormDiv">
+            <h2>ग्राम कंट्रोलर लॉगिन (सुरक्षित पोर्टल)</h2>
+            <div class="form-group">
+                <label>कंट्रोलर ईमेल ID:</label>
+                <input type="email" id="loginEmail" placeholder="controller@mpjal.in">
+            </div>
+            <div class="form-group">
+                <label>पासवर्ड:</label>
+                <input type="password" id="loginPassword" placeholder="********">
+            </div>
+            <button class="btn btn-blue" onclick="loginController()">लॉगिन करें</button>
+            <p class="toggle-link" onclick="resetPassword()">पासवर्ड भूल गए? (Reset Password)</p>
+            <p class="toggle-link" onclick="toggleAuthMode('register')">नया कंट्रोलर अकाउंट बनाएं (New Registration)</p>
         </div>
-        <div class="form-group">
-            <label>पासवर्ड:</label>
-            <input type="password" id="loginPassword" placeholder="********">
+
+        <!-- Register Form -->
+        <div id="registerFormDiv" class="hidden">
+            <h2>नया कंट्रोलर अकाउंट बनाएं (Sign Up)</h2>
+            <div class="form-group">
+                <label>नया ईमेल ID:</label>
+                <input type="email" id="regEmail" placeholder="newcontroller@mpjal.in">
+            </div>
+            <div class="form-group">
+                <label>नया पासवर्ड (कम से कम 6 अंक):</label>
+                <input type="password" id="regPassword" placeholder="********">
+            </div>
+            <button class="btn" style="background:#17a2b8;" onclick="registerController()">रजिस्टर करें</button>
+            <p class="toggle-link" onclick="toggleAuthMode('login')">पहले से अकाउंट है? लॉगिन करें</p>
         </div>
-        <button class="btn btn-blue" onclick="loginController()">लॉगिन करें</button>
     </div>
 
     <!-- 3. CONTROLLER DASHBOARD -->
     <div id="adminSection" class="hidden">
-        <div class="card section-box" style="border-top-color: #28a745;">
+        
+        <!-- GLOBAL UPI, QR & BROADCAST PANEL -->
+        <div class="card section-box" style="border-top-color: #ffc107; background: #fffbe6;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h2>नया नल कनेक्शन जोड़ें</h2>
+                <h2>गाँव की मुख्य UPI, QR और मासिक बिल सेटिंग्स</h2>
                 <button class="btn btn-red" onclick="logoutController()">लॉगआउट</button>
             </div>
+            <div class="form-group">
+                <label>पूरे गाँव के लिए एक ही फिक्स UPI ID (जिस पर सभी लोग टैक्स भेजेंगे):</label>
+                <div style="display:flex; gap:8px;">
+                    <input type="text" id="globalUpi" placeholder="जैसे: grampanchayat@oksbi" value="grampanchayat@oksbi">
+                    <button class="btn btn-blue" style="width:auto; padding:0 15px;" onclick="saveGlobalUpi()">सेव UPI</button>
+                </div>
+            </div>
+            <div class="qr-box">
+                <p style="margin:0 0 5px; font-weight:bold; font-size:13px;">ग्रामीणों के लिए मुख्य पेमेंट QR कोड:</p>
+                <img id="villageQrImg" src="" alt="UPI QR Code" style="width:140px; height:140px; border:1px solid #ccc; padding:4px; background:white;">
+                <p id="displayUpiText" style="margin:5px 0 0; font-size:12px; color:#0056b3; font-weight:bold;"></p>
+            </div>
+            <button class="btn-broadcast" onclick="sendMonthlyBillsWhatsApp()">📢 महीने का बिल WhatsApp पर सभी को भेजें (1-Click)</button>
+        </div>
+
+        <!-- ADD NEW CONNECTION -->
+        <div class="card section-box" style="border-top-color: #28a745;">
+            <h2>नया नल कनेक्शन (मुखिया ID) जोड़ें</h2>
             <form id="addConnectionForm">
                 <div class="form-group">
                     <label>ग्राम का नाम:</label>
@@ -107,8 +153,12 @@
                     <input type="text" id="ownerName" required placeholder="पूरा नाम">
                 </div>
                 <div class="form-group">
+                    <label>मोबाइल नंबर (WhatsApp बिल के लिए):</label>
+                    <input type="tel" id="mobileNo" maxlength="10" placeholder="10 अंकों का मोबाइल नंबर">
+                </div>
+                <div class="form-group">
                     <label>12 अंकों का आधार नंबर:</label>
-                    <input type="text" id="aadhaar" maxlength="12" pattern="\d{12}" required placeholder="123456789012">
+                    <input type="text" id="aadhaar" maxlength="12" pattern="\d{12}" required placeholder="12 अंकों का नंबर दर्ज करें">
                 </div>
                 <div class="form-group">
                     <label>घर में नलों की संख्या:</label>
@@ -118,25 +168,22 @@
                     <label>मासिक जल कर (₹) [अपने हिसाब से बदलें]:</label>
                     <input type="number" id="customTax" value="60" required>
                 </div>
-                <div class="form-group">
-                    <label>ऑनलाइन भुगतान UPI ID (QR / Link के लिए):</label>
-                    <input type="text" id="upiId" placeholder="जैसे: yourname@paytm" value="yourupi@oksbi">
-                </div>
                 <button type="submit" class="btn">डेटाबेस में सेव करें</button>
             </form>
         </div>
 
+        <!-- MANAGE CONNECTIONS & OFFLINE CASH -->
         <div class="card section-box" style="border-top-color: #28a745;">
-            <h2>कनेक्शन प्रबंधन एवं टैक्स कलेक्शन पैनल</h2>
+            <h2>कनेक्शन प्रबंधन एवं नकद (Offline) टैक्स कलेक्शन पैनल</h2>
             <div class="table-responsive">
                 <table>
                     <thead>
                         <tr>
                             <th>ID/वार्ड</th>
-                            <th>नाम व ग्राम</th>
+                            <th>नाम व मोबाइल</th>
                             <th>टैक्स</th>
                             <th>स्थिति</th>
-                            <th>एक्शन</th>
+                            <th>एक्शन (नकद / ऑनलाइन / हटाएं)</th>
                         </tr>
                     </thead>
                     <tbody id="adminTableBody"></tbody>
@@ -145,6 +192,10 @@
         </div>
     </div>
 </div>
+
+<footer>
+    <p>MP Nal Jal Yojana Portal | Created & Managed by <span>Prashant Mongre</span></p>
+</footer>
 
 <!-- RECEIPT MODAL -->
 <div id="receiptModal" class="receipt-card-container hidden">
@@ -163,8 +214,8 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, onSnapshot, doc, setDoc, getDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyAo_e0G-HoCLz0zmQrebs601-1dr5vX4tc",
@@ -180,8 +231,38 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
     const connectionsRef = collection(db, "nal_connections");
+    const settingsDocRef = doc(db, "portal_settings", "config");
 
     let allRecords = [];
+    let savedGlobalUpi = "grampanchayat@oksbi";
+
+    // Load Global UPI from Firestore
+    onSnapshot(settingsDocRef, (docSnap) => {
+        if (docSnap.exists() && docSnap.data().upiId) {
+            savedGlobalUpi = docSnap.data().upiId;
+            document.getElementById('globalUpi').value = savedGlobalUpi;
+        }
+        updateQrDisplay();
+        renderTables();
+    });
+
+    function updateQrDisplay() {
+        const upiUri = `upi://pay?pa=${savedGlobalUpi}&pn=MPNalJal&cu=INR`;
+        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiUri)}`;
+        document.getElementById('villageQrImg').src = qrApiUrl;
+        document.getElementById('displayUpiText').innerText = "UPI ID: " + savedGlobalUpi;
+    }
+
+    window.saveGlobalUpi = async () => {
+        const newUpi = document.getElementById('globalUpi').value.trim();
+        if (!newUpi) return alert("कृपया सही UPI ID दर्ज करें।");
+        try {
+            await setDoc(settingsDocRef, { upiId: newUpi });
+            alert("पूरे गाँव के लिए मुख्य UPI ID सेव हो गई है!");
+        } catch (err) {
+            alert("Error: " + err.message);
+        }
+    };
 
     document.getElementById('tapCount').addEventListener('input', (e) => {
         const count = parseInt(e.target.value) || 1;
@@ -212,7 +293,7 @@
                 ? `<span class="badge-paid">जमा (Paid)</span>` 
                 : `<span class="badge-pending">बकाया (Pending)</span>`;
 
-            const upiLink = `upi://pay?pa=${rec.upiId || 'yourupi@oksbi'}&pn=MPNalJal&am=${rec.tax}&cu=INR&tn=WaterTax_${rec.connId}`;
+            const upiLink = `upi://pay?pa=${savedGlobalUpi}&pn=MPNalJal&am=${rec.tax}&cu=INR&tn=WaterTax_${rec.connId}`;
 
             publicBody.innerHTML += `
                 <tr>
@@ -230,17 +311,26 @@
             `;
 
             const payBtn = rec.paid 
-                ? `<button onclick="toggleTax('${rec.docId}', false)" style="padding:4px 8px; cursor:pointer;">Unpaid करें</button>`
-                : `<button onclick="toggleTax('${rec.docId}', true)" style="background:#28a745; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;">Paid करें</button>`;
+                ? `<button onclick="toggleTax('${rec.docId}', false)" style="background:#6c757d; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;">बाकी (Unpaid) करें</button>`
+                : `<button onclick="toggleTax('${rec.docId}', true)" style="background:#28a745; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; font-size:11px; font-weight:bold;">💵 नकद (Cash) जमा करें</button>`;
+
+            const waMsg = `*MP नल जल योजना - जल कर रसीद/बिल*\nनमस्कार ${rec.name} जी,\nआपका ${rec.wardNo || ''} का जल कर ₹${rec.tax} ${rec.paid ? 'जमा हो चुका है। धन्यवाद!' : 'बकाया है। ऑनलाइन भुगतान हेतु लिंक:'}\n${!rec.paid ? upiLink : ''}`;
+            const waLink = `https://wa.me/91${rec.mobileNo || ''}?text=${encodeURIComponent(waMsg)}`;
+
+            const waBtn = rec.mobileNo 
+                ? `<a href="${waLink}" target="_blank" style="background:#25d366; color:white; padding:4px 8px; border-radius:4px; text-decoration:none; font-size:11px; display:inline-block; margin-top:2px;">WhatsApp बिल</a>`
+                : '';
 
             adminBody.innerHTML += `
                 <tr>
                     <td><b>${rec.connId}</b><br><small>${rec.wardNo || ''}</small></td>
-                    <td>${rec.name} (${rec.village})<br>₹ ${rec.tax}</td>
+                    <td>${rec.name}<br><small>📱 ${rec.mobileNo || 'नंबर नहीं'}</small></td>
+                    <td>₹ ${rec.tax}</td>
                     <td>${badge}</td>
                     <td>
                         ${payBtn}
-                        <button onclick="deleteRecord('${rec.docId}')" style="background:#dc3545; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; margin-left:4px;">हटाएं</button>
+                        ${waBtn}
+                        <button onclick="deleteRecord('${rec.docId}')" style="background:#dc3545; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; font-size:11px; margin-top:2px;">हटाएं</button>
                     </td>
                 </tr>
             `;
@@ -258,17 +348,17 @@
             village: document.getElementById('village').value.trim(),
             wardNo: document.getElementById('wardNo').value.trim(),
             name: document.getElementById('ownerName').value.trim(),
+            mobileNo: document.getElementById('mobileNo').value.trim(),
             aadhaarLast4: aadhaarFull.slice(-4),
             taps: taps,
             tax: customTaxVal,
-            upiId: document.getElementById('upiId').value.trim(),
             paid: false,
             createdAt: new Date().toISOString()
         };
 
         try {
             await addDoc(connectionsRef, newConn);
-            alert("कनेक्शन सफलतापूर्वक जुड़ गया! ID: " + newConn.connId);
+            alert("नया कनेक्शन (मुखिया ID) जुड़ गया! ID: " + newConn.connId);
             e.target.reset();
             document.getElementById('customTax').value = "60";
         } catch (err) {
@@ -286,59 +376,16 @@
         }
     };
 
-    window.showReceipt = (docId) => {
-        const rec = allRecords.find(r => r.docId === docId);
-        if (!rec) return;
+    window.sendMonthlyBillsWhatsApp = () => {
+        const unpaidList = allRecords.filter(r => !r.paid && r.mobileNo);
+        if (unpaidList.length === 0) {
+            alert("कोई ऐसा बकायेदार नहीं मिला जिसके पास मोबाइल नंबर दर्ज हो।");
+            return;
+        }
         
-        const content = `
-            <p><b>कनेक्शन ID:</b> ${rec.connId}</p>
-            <p><b>ग्राम / वार्ड:</b> ${rec.village} (${rec.wardNo || 'N/A'})</p>
-            <p><b>मुखिया का नाम:</b> ${rec.name}</p>
-            <p><b>आधार (अंतिम 4):</b> XXXX-${rec.aadhaarLast4}</p>
-            <p><b>नलों की संख्या:</b> ${rec.taps}</p>
-            <p><b>मासिक जल कर:</b> ₹ ${rec.tax}</p>
-            <p><b>भुगतान स्थिति:</b> <span style="color:${rec.paid ? 'green' : 'red'}; font-weight:bold;">${rec.paid ? 'SUCCESSFUL (जमा है)' : 'PENDING (बाकी है)'}</span></p>
-        `;
-        document.getElementById('receiptContent').innerHTML = content;
-        document.getElementById('receiptModal').classList.remove('hidden');
-    };
-
-    window.closeReceipt = () => {
-        document.getElementById('receiptModal').classList.add('hidden');
-    };
-
-    window.loginController = async () => {
-        const email = document.getElementById('loginEmail').value;
-        const pass = document.getElementById('loginPassword').value;
-        try {
-            await signInWithEmailAndPassword(auth, email, pass);
-        } catch (err) {
-            alert("लॉगिन विफल: ईमेल या पासवर्ड गलत है।");
-        }
-    };
-
-    window.logoutController = async () => {
-        await signOut(auth);
-    };
-
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            document.getElementById('loginCard').classList.add('hidden');
-            document.getElementById('adminSection').classList.remove('hidden');
-        } else {
-            document.getElementById('loginCard').classList.remove('hidden');
-            document.getElementById('adminSection').classList.add('hidden');
-        }
-    });
-
-    window.filterPublicTable = () => {
-        const term = document.getElementById('searchInput').value.toLowerCase();
-        const rows = document.querySelectorAll('#publicTableBody tr');
-        rows.forEach(row => {
-            row.style.display = row.innerText.toLowerCase().includes(term) ? '' : 'none';
-        });
-    };
-</script>
-
-</body>
-</html>
+        unpaidList.forEach((rec, index) => {
+            const upiLink = `upi://pay?pa=${savedGlobalUpi}&pn=MPNalJal&am=${rec.tax}&cu=INR&tn=WaterTax_${rec.connId}`;
+            const msg = `*MP नल जल योजना - मासिक जल कर बिल*\nनमस्कार ${rec.name} जी,\nआपका ${rec.wardNo || ''} का इस महीने का जल कर ₹${rec.tax} बकाया है। आप पंचायत में नकद जमा कर सकते हैं या ऑनलाइन UPI से भुगतान कर सकते हैं:\n${upiLink}`;
+            
+            setTimeout(() => {
+    
