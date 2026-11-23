@@ -1,4 +1,4 @@
-DOCTYPE html>
+<!DOCTYPE html>
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
@@ -31,7 +31,6 @@ DOCTYPE html>
         .hidden { display: none !important; }
         .table-responsive { overflow-x: auto; }
         .section-box { margin-bottom: 25px; border-top: 4px solid #0056b3; }
-        .toggle-link { text-align: center; margin-top: 10px; font-size: 14px; color: #0056b3; cursor: pointer; text-decoration: underline; }
         
         footer { background: #222; color: white; text-align: center; padding: 15px; font-size: 14px; margin-top: auto; }
         footer span { color: #4dc3ff; font-weight: bold; }
@@ -78,21 +77,15 @@ DOCTYPE html>
         </div>
     </div>
 
-    <!-- 2. CONTROLLER AUTH SECTION -->
+    <!-- 2. CONTROLLER LOGIN SECTION -->
     <div id="authCard" class="card section-box">
-        <div id="loginFormDiv">
-            <h2>ग्राम कंट्रोलर लॉगिन (सुरक्षित)</h2>
-            <div class="form-group">
-                <label>कंट्रोलर ईमेल ID:</label>
-                <input type="email" id="loginEmail" placeholder="prashantkumar8329@gmail.com">
-            </div>
-            <div class="form-group">
-                <label>पासवर्ड:</label>
-                <input type="password" id="loginPassword" placeholder="********">
-            </div>
-            <button class="btn btn-blue" onclick="loginController()">लॉगिन करें</button>
-            <p class="toggle-link" onclick="resetPassword()">पासवर्ड भूल गए? (Reset)</p>
+        <h2>ग्राम कंट्रोलर लॉगिन</h2>
+        <div class="form-group">
+            <label>पासवर्ड दर्ज करें:</label>
+            <input type="password" id="adminPasswordInput" placeholder="पासवर्ड लिखें (naljal123)">
         </div>
+        <button class="btn btn-blue" onclick="checkAdminLogin()">डैशबोर्ड खोलें</button>
+        <p style="margin-top:10px; font-size:12px; color:#666; text-align:center;">पासवर्ड: <b>naljal123</b></p>
     </div>
 
     <!-- 3. CONTROLLER DASHBOARD -->
@@ -102,7 +95,7 @@ DOCTYPE html>
         <div class="card section-box" style="border-top-color: #ffc107; background: #fffbe6;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <h2>गाँव की मुख्य UPI, QR और मासिक बिल सेटिंग्स</h2>
-                <button class="btn btn-red" onclick="logoutController()">लॉगआउट</button>
+                <button class="btn btn-red" onclick="logoutAdmin()">लॉगआउट</button>
             </div>
             <div class="form-group">
                 <label>पूरे गाँव के लिए एक ही फिक्स UPI ID:</label>
@@ -197,7 +190,6 @@ DOCTYPE html>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -210,32 +202,86 @@ DOCTYPE html>
         measurementId: "G-T037JN43G4"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const connectionsRef = collection(db, "nal_connections");
-    const settingsDocRef = doc(db, "portal_settings", "config");
-
     let allRecords = [];
     let savedGlobalUpi = "grampanchayat@oksbi";
 
-    onSnapshot(settingsDocRef, (docSnap) => {
-        if (docSnap.exists() && docSnap.data().upiId) {
-            savedGlobalUpi = docSnap.data().upiId;
-            const upiInput = document.getElementById('globalUpi');
-            if(upiInput) upiInput.value = savedGlobalUpi;
-        }
-        updateQrDisplay();
-        renderTables();
-    }, (err) => { console.log("Settings error:", err); });
+    try {
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const connectionsRef = collection(db, "nal_connections");
+        const settingsDocRef = doc(db, "portal_settings", "config");
 
-    onSnapshot(connectionsRef, (snapshot) => {
-        allRecords = [];
-        snapshot.forEach((docSnap) => {
-            allRecords.push({ docId: docSnap.id, ...docSnap.data() });
+        onSnapshot(settingsDocRef, (docSnap) => {
+            if (docSnap.exists() && docSnap.data().upiId) {
+                savedGlobalUpi = docSnap.data().upiId;
+                const upiInput = document.getElementById('globalUpi');
+                if(upiInput) upiInput.value = savedGlobalUpi;
+            }
+            updateQrDisplay();
+            renderTables();
+        }, (err) => { console.log("Settings sync note:", err); });
+
+        onSnapshot(connectionsRef, (snapshot) => {
+            allRecords = [];
+            snapshot.forEach((docSnap) => {
+                allRecords.push({ docId: docSnap.id, ...docSnap.data() });
+            });
+            renderTables();
+        }, (err) => { 
+            console.log("DB sync error:", err);
+            renderTables();
         });
+
+        window.saveGlobalUpi = async () => {
+            const newUpi = document.getElementById('globalUpi').value.trim();
+            if (!newUpi) return alert("कृपया सही UPI ID दर्ज करें।");
+            try {
+                await setDoc(settingsDocRef, { upiId: newUpi });
+                alert("पूरे गाँव के लिए मुख्य UPI ID सेव हो गई है!");
+            } catch (err) { alert("Error: " + err.message); }
+        };
+
+        document.getElementById('addConnectionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const aadhaarFull = document.getElementById('aadhaar').value;
+            const taps = parseInt(document.getElementById('tapCount').value);
+            const customTaxVal = parseFloat(document.getElementById('customTax').value) || 60;
+            
+            const newConn = {
+                connId: 'MPNJ-' + Math.floor(1000 + Math.random() * 9000),
+                village: document.getElementById('village').value.trim(),
+                wardNo: document.getElementById('wardNo').value.trim(),
+                name: document.getElementById('ownerName').value.trim(),
+                mobileNo: document.getElementById('mobileNo').value.trim(),
+                aadhaarLast4: aadhaarFull.slice(-4),
+                taps: taps,
+                tax: customTaxVal,
+                paid: false,
+                createdAt: new Date().toISOString()
+            };
+
+            try {
+                await addDoc(connectionsRef, newConn);
+                alert("नया कनेक्शन जुड़ गया! ID: " + newConn.connId);
+                e.target.reset();
+                document.getElementById('customTax').value = "60";
+            } catch (err) { alert("Error: " + err.message); }
+        });
+
+        window.toggleTax = async (docId, status) => {
+            try { await updateDoc(doc(db, "nal_connections", docId), { paid: status }); } catch (err) { alert("Error: " + err.message); }
+        };
+
+        window.deleteRecord = async (docId) => {
+            if (confirm("क्या आप वाकई इस कनेक्शन को हटाना चाहते हैं?")) {
+                try { await deleteDoc(doc(db, "nal_connections", docId)); } catch (err) { alert("Error: " + err.message); }
+            }
+        };
+
+    } catch (e) {
+        console.log("Firebase Init Error:", e);
         renderTables();
-    }, (err) => { console.log("DB error:", err); });
+    }
 
     function updateQrDisplay() {
         const upiUri = `upi://pay?pa=${savedGlobalUpi}&pn=MPNalJal&cu=INR`;
@@ -246,20 +292,13 @@ DOCTYPE html>
         if(upiText) upiText.innerText = "UPI ID: " + savedGlobalUpi;
     }
 
-    window.saveGlobalUpi = async () => {
-        if (!auth.currentUser) return alert("सुरक्षा त्रुटि: पहले लॉगिन करें!");
-        const newUpi = document.getElementById('globalUpi').value.trim();
-        if (!newUpi) return alert("कृपया सही UPI ID दर्ज करें।");
-        try {
-            await setDoc(settingsDocRef, { upiId: newUpi });
-            alert("पूरे गाँव के लिए मुख्य UPI ID सेव हो गई है!");
-        } catch (err) { alert("Error: " + err.message); }
-    };
-
-    document.getElementById('tapCount').addEventListener('input', (e) => {
-        const count = parseInt(e.target.value) || 1;
-        document.getElementById('customTax').value = count * 60;
-    });
+    const tapCountInput = document.getElementById('tapCount');
+    if(tapCountInput) {
+        tapCountInput.addEventListener('input', (e) => {
+            const count = parseInt(e.target.value) || 1;
+            document.getElementById('customTax').value = count * 60;
+        });
+    }
 
     function renderTables() {
         const publicBody = document.getElementById('publicTableBody');
@@ -270,7 +309,7 @@ DOCTYPE html>
         adminBody.innerHTML = '';
 
         if (allRecords.length === 0) {
-            publicBody.innerHTML = '<tr><td colspan="7">कोई रिकॉर्ड नहीं मिला। पहले कंट्रोलर लॉगिन करें।</td></tr>';
+            publicBody.innerHTML = '<tr><td colspan="7">कोई रिकॉर्ड नहीं मिला। (नया कनेक्शन जोड़ने के लिए नीचे लॉगिन करें)</td></tr>';
             adminBody.innerHTML = '<tr><td colspan="5">कोई कनेक्शन नहीं है।</td></tr>';
             return;
         }
@@ -324,49 +363,7 @@ DOCTYPE html>
         });
     }
 
-    document.getElementById('addConnectionForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (!auth.currentUser) return alert("सुरक्षा त्रुटि: कृपया फिर से लॉगिन करें!");
-        
-        const aadhaarFull = document.getElementById('aadhaar').value;
-        const taps = parseInt(document.getElementById('tapCount').value);
-        const customTaxVal = parseFloat(document.getElementById('customTax').value) || 60;
-        
-        const newConn = {
-            connId: 'MPNJ-' + Math.floor(1000 + Math.random() * 9000),
-            village: document.getElementById('village').value.trim(),
-            wardNo: document.getElementById('wardNo').value.trim(),
-            name: document.getElementById('ownerName').value.trim(),
-            mobileNo: document.getElementById('mobileNo').value.trim(),
-            aadhaarLast4: aadhaarFull.slice(-4),
-            taps: taps,
-            tax: customTaxVal,
-            paid: false,
-            createdAt: new Date().toISOString()
-        };
-
-        try {
-            await addDoc(connectionsRef, newConn);
-            alert("नया कनेक्शन जुड़ गया! ID: " + newConn.connId);
-            e.target.reset();
-            document.getElementById('customTax').value = "60";
-        } catch (err) { alert("Error: " + err.message); }
-    });
-
-    window.toggleTax = async (docId, status) => {
-        if (!auth.currentUser) return alert("अनुमति नहीं है!");
-        try { await updateDoc(doc(db, "nal_connections", docId), { paid: status }); } catch (err) { alert("Error: " + err.message); }
-    };
-
-    window.deleteRecord = async (docId) => {
-        if (!auth.currentUser) return alert("अनुमति नहीं है!");
-        if (confirm("क्या आप वाकई इस कनेक्शन को हटाना चाहते हैं?")) {
-            try { await deleteDoc(doc(db, "nal_connections", docId)); } catch (err) { alert("Error: " + err.message); }
-        }
-    };
-
     window.sendMonthlyBillsWhatsApp = () => {
-        if (!auth.currentUser) return alert("लॉगिन आवश्यक है!");
         const unpaidList = allRecords.filter(r => !r.paid && r.mobileNo);
         if (unpaidList.length === 0) {
             alert("कोई ऐसा बकायेदार नहीं मिला जिसके पास मोबाइल नंबर दर्ज हो।");
@@ -385,4 +382,12 @@ DOCTYPE html>
         alert(unpaidList.length + " लोगों के WhatsApp बिल भेजने की प्रक्रिया शुरू हो रही है!");
     };
 
-    window.showRe
+    window.showReceipt = (docId) => {
+        const rec = allRecords.find(r => r.docId === docId);
+        if (!rec) return;
+        
+        const upiUri = `upi://pay?pa=${savedGlobalUpi}&pn=MPNalJal&am=${rec.tax}&cu=INR&tn=WaterTax_${rec.connId}`;
+        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(upiUri)}`;
+
+        const content = `
+            <p><b>कनेक्शन ID:</b> ${rec.connId}
