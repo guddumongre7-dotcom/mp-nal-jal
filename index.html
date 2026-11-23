@@ -31,7 +31,6 @@
         .hidden { display: none !important; }
         .table-responsive { overflow-x: auto; }
         .section-box { margin-bottom: 25px; border-top: 4px solid #0056b3; }
-        .toggle-link { text-align: center; margin-top: 10px; font-size: 14px; color: #0056b3; cursor: pointer; text-decoration: underline; }
         
         footer { background: #222; color: white; text-align: center; padding: 15px; font-size: 14px; margin-top: auto; }
         footer span { color: #4dc3ff; font-weight: bold; }
@@ -78,48 +77,25 @@
         </div>
     </div>
 
-    <!-- 2. CONTROLLER AUTH SECTION (LOGIN / REGISTER) -->
+    <!-- 2. CONTROLLER LOGIN SECTION -->
     <div id="authCard" class="card section-box">
-        <!-- Login Form -->
-        <div id="loginFormDiv">
-            <h2>ग्राम कंट्रोलर लॉगिन (सुरक्षित)</h2>
-            <div class="form-group">
-                <label>कंट्रोलर ईमेल ID:</label>
-                <input type="email" id="loginEmail" placeholder="controller@mpjal.in">
-            </div>
-            <div class="form-group">
-                <label>पासवर्ड:</label>
-                <input type="password" id="loginPassword" placeholder="********">
-            </div>
-            <button class="btn btn-blue" onclick="loginController()">लॉगिन करें</button>
-            <p class="toggle-link" onclick="resetPassword()">पासवर्ड भूल गए? (Reset)</p>
-            <p class="toggle-link" onclick="toggleAuthMode('register')">नया कंट्रोलर अकाउंट बनाएं (Sign Up)</p>
+        <h2>ग्राम कंट्रोलर लॉगिन</h2>
+        <div class="form-group">
+            <label>कंट्रोलर पासवर्ड दर्ज करें:</label>
+            <input type="password" id="adminPasswordInput" placeholder="पासवर्ड लिखें (जैसे: naljal123)">
         </div>
-
-        <!-- Register Form -->
-        <div id="registerFormDiv" class="hidden">
-            <h2>नया कंट्रोलर अकाउंट बनाएं</h2>
-            <div class="form-group">
-                <label>नया ईमेल ID:</label>
-                <input type="email" id="regEmail" placeholder="newcontroller@mpjal.in">
-            </div>
-            <div class="form-group">
-                <label>नया पासवर्ड (कम से कम 6 अंक):</label>
-                <input type="password" id="regPassword" placeholder="********">
-            </div>
-            <button class="btn" style="background:#17a2b8;" onclick="registerController()">रजिस्टर करें</button>
-            <p class="toggle-link" onclick="toggleAuthMode('login')">पहले से अकाउंट है? लॉगिन करें</p>
-        </div>
+        <button class="btn btn-blue" onclick="checkAdminLogin()">डैशबोर्ड खोलें</button>
+        <p style="margin-top:10px; font-size:12px; color:#666; text-align:center;">डिफ़ॉल्ट पासवर्ड: <b>naljal123</b> (आप इसे बाद में बदल सकते हैं)</p>
     </div>
 
-    <!-- 3. CONTROLLER DASHBOARD (STRICTLY SECURE) -->
+    <!-- 3. CONTROLLER DASHBOARD -->
     <div id="adminSection" class="hidden">
         
         <!-- GLOBAL UPI, QR & BROADCAST PANEL -->
         <div class="card section-box" style="border-top-color: #ffc107; background: #fffbe6;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <h2>गाँव की मुख्य UPI, QR और मासिक बिल सेटिंग्स</h2>
-                <button class="btn btn-red" onclick="logoutController()">लॉगआउट (सुरक्षित बाहर)</button>
+                <button class="btn btn-red" onclick="logoutAdmin()">लॉगआउट</button>
             </div>
             <div class="form-group">
                 <label>पूरे गाँव के लिए एक ही फिक्स UPI ID:</label>
@@ -214,7 +190,6 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -228,7 +203,6 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
     const db = getFirestore(app);
     const connectionsRef = collection(db, "nal_connections");
     const settingsDocRef = doc(db, "portal_settings", "config");
@@ -253,7 +227,6 @@
     }
 
     window.saveGlobalUpi = async () => {
-        if (!auth.currentUser) return alert("सुरक्षा त्रुटि: पहले लॉगिन करें!");
         const newUpi = document.getElementById('globalUpi').value.trim();
         if (!newUpi) return alert("कृपया सही UPI ID दर्ज करें।");
         try {
@@ -339,8 +312,6 @@
 
     document.getElementById('addConnectionForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (!auth.currentUser) return alert("सुरक्षा त्रुटि: एक्शन अस्वीकृत! कृपया फिर से लॉगिन करें।");
-        
         const aadhaarFull = document.getElementById('aadhaar').value;
         const taps = parseInt(document.getElementById('tapCount').value);
         const customTaxVal = parseFloat(document.getElementById('customTax').value) || 60;
@@ -369,19 +340,16 @@
     });
 
     window.toggleTax = async (docId, status) => {
-        if (!auth.currentUser) return alert("सुरक्षा त्रुटि: अनुमति नहीं है!");
         await updateDoc(doc(db, "nal_connections", docId), { paid: status });
     };
 
     window.deleteRecord = async (docId) => {
-        if (!auth.currentUser) return alert("सुरक्षा त्रुटि: अनुमति नहीं है!");
         if (confirm("क्या आप वाकई इस कनेक्शन को हटाना चाहते हैं?")) {
             await deleteDoc(doc(db, "nal_connections", docId));
         }
     };
 
     window.sendMonthlyBillsWhatsApp = () => {
-        if (!auth.currentUser) return alert("सुरक्षा त्रुटि: लॉगिन आवश्यक है!");
         const unpaidList = allRecords.filter(r => !r.paid && r.mobileNo);
         if (unpaidList.length === 0) {
             alert("कोई ऐसा बकायेदार नहीं मिला जिसके पास मोबाइल नंबर दर्ज हो।");
@@ -389,4 +357,37 @@
         }
         
         unpaidList.forEach((rec, index) => {
-            const upiLink = `upi://pay?pa=${savedGlobalUpi}&pn=MPNalJal&am=${rec.tax}&cu=INR&tn=WaterTa
+            const upiLink = `upi://pay?pa=${savedGlobalUpi}&pn=MPNalJal&am=${rec.tax}&cu=INR&tn=WaterTax_${rec.connId}`;
+            const msg = `*MP नल जल योजना - मासिक जल कर बिल*\nनमस्कार ${rec.name} जी,\nआपका ${rec.wardNo || ''} का इस महीने का जल कर ₹${rec.tax} बकाया है। आप पंचायत में नकद जमा कर सकते हैं या ऑनलाइन UPI से भुगतान कर सकते हैं:\n${upiLink}`;
+            
+            setTimeout(() => {
+                window.open(`https://wa.me/91${rec.mobileNo}?text=${encodeURIComponent(msg)}`, '_blank');
+            }, index * 1000);
+        });
+        
+        alert(unpaidList.length + " लोगों के WhatsApp बिल भेजने की प्रक्रिया शुरू हो रही है!");
+    };
+
+    window.showReceipt = (docId) => {
+        const rec = allRecords.find(r => r.docId === docId);
+        if (!rec) return;
+        
+        const upiUri = `upi://pay?pa=${savedGlobalUpi}&pn=MPNalJal&am=${rec.tax}&cu=INR&tn=WaterTax_${rec.connId}`;
+        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(upiUri)}`;
+
+        const content = `
+            <p><b>कनेक्शन ID:</b> ${rec.connId}</p>
+            <p><b>ग्राम / वार्ड:</b> ${rec.village} (${rec.wardNo || 'N/A'})</p>
+            <p><b>मुखिया का नाम:</b> ${rec.name}</p>
+            <p><b>आधार (अंतिम 4):</b> XXXX-${rec.aadhaarLast4}</p>
+            <p><b>नलों की संख्या:</b> ${rec.taps}</p>
+            <p><b>मासिक जल कर:</b> ₹ ${rec.tax}</p>
+            <p><b>भुगतान स्थिति:</b> <span style="color:${rec.paid ? 'green' : 'red'}; font-weight:bold;">${rec.paid ? 'SUCCESSFUL (जमा है)' : 'PENDING (बाकी है)'}</span></p>
+            ${!rec.paid ? `<div style="text-align:center; margin-top:10px;"><img src="${qrApiUrl}" alt="QR"><br><small>स्कैन करके भुगतान करें (${savedGlobalUpi})</small></div>` : ''}
+        `;
+        document.getElementById('receiptContent').innerHTML = content;
+        document.getElementById('receiptModal').classList.remove('hidden');
+    };
+
+    window.closeReceipt = () => {
+        document.getElementById('rece
