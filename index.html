@@ -5,6 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MP नल जल योजना - ग्राम पोर्टल</title>
     <meta name="theme-color" content="#0056b3">
+    
+    <!-- Inline PWA Manifest Data -->
+    <link rel="manifest" href="data:application/manifest+json,{
+      %22name%22: %22MP Nal Jal Yojana%22,
+      %22short_name%22: %22Nal Jal%22,
+      %22start_url%22: %22./%22,
+      %22display%22: %22standalone%22,
+      %22background_color%22: %22%23ffffff%22,
+      %22theme_color%22: %22%230056b3%22,
+      %22description%22: %22ग्राम जल कर एवं नल कनेक्शन प्रबंधन प्रणाली%22,
+      %22icons%22: [{
+        %22src%22: %22https://api.qrserver.com/v1/create-qr-code/?size=192x192&data=MPNalJal%22,
+        %22sizes%22: %22192x192%22,
+        %22type%22: %22image/png%22
+      }]
+    }">
+
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
         body { background: #eef2f5; margin: 0; padding: 0; display: flex; flex-direction: column; min-height: 100vh; }
@@ -362,9 +379,8 @@
             const msg = `*MP नल जल योजना बिल*\nनमस्कार ${rec.name} जी, आपका इस महीने का जल कर ₹${rec.tax} बकाया है। ऑनलाइन भुगतान हेतु लिंक:\n${upiLink}`;
             setTimeout(() => window.open(`https://wa.me/91${rec.mobileNo}?text=${encodeURIComponent(msg)}`, '_blank'), i * 1000);
         });
-        alert(unpaid.length + " लोगों को WhatsApp बिल भेजने की प्रक्रिया शुरू हो गई है!");
+        alert(unpaid.length + " लोगों को WhatsApp बिल भेजने की प्रक्रिया शुरू हो रही है!");
     }
 </script>
 
-</body>
-</html>
+    
