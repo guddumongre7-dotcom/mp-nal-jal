@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MP नल जल योजना - ग्राम पोर्टल</title>
+    <meta name="theme-color" content="#0056b3">
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background: #eef2f5; margin: 0; padding: 0; }
+        header { background: #0056b3; color: white; padding: 15px; text-align: center; }
+        header h1 { margin: 0; font-size: 20px; }
+        header p { margin: 5px 0 0; font-size: 13px; opacity: 0.9; }
+        .container { max-width: 900px; margin: 15px auto; padding: 0 15px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); margin-bottom: 20px; }
+        h2 { color: #0056b3; font-size: 18px; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+        .tab-btn { flex: 1; padding: 10px; border: none; background: #d0d7de; cursor: pointer; font-weight: bold; border-radius: 5px; }
+        .tab-btn.active { background: #0056b3; color: white; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 14px; }
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 15px; }
+        .btn { background: #28a745; color: white; border: none; padding: 12px 18px; border-radius: 5px; cursor: pointer; font-size: 15px; font-weight: bold; width: 100%; }
+        .btn-blue { background: #0056b3; }
+        .btn-red { background: #dc3545; width: auto; padding: 6px 12px; font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #0056b3; color: white; }
+        .badge-paid { background: #28a745; color: white; padding: 3px 7px; border-radius: 4px; font-size: 12px; }
+        .badge-pending { background: #dc3545; color: white; padding: 3px 7px; border-radius: 4px; font-size: 12px; }
+        .hidden { display: none; }
+        .table-responsive { overflow-x: auto; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>मध्यप्रदेश नल जल योजना (जल जीवन मिशन)</h1>
+    <p>ग्राम जल कर एवं नल कनेक्शन प्रबंधन प्रणाली</p>
+</header>
+
+<div class="container">
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('public')">ग्रामीण पोर्टल (बिल देखें)</button>
+        <button class="tab-btn" onclick="switchTab('admin')">ग्राम कंट्रोलर लॉगिन</button>
+    </div>
+
+    <!-- 1. PUBLIC PORTAL -->
+    <div id="publicSection" class="card">
+        <h2>अपना जल कर (Water Tax) जांचें</h2>
+        <div class="form-group">
+            <label>आधार के अंतिम 4 अंक या नाम से खोजें:</label>
+            <input type="text" id="searchInput" placeholder="उदाहरण: 4589 या रमेश" onkeyup="filterPublicTable()">
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>कनेक्शन ID</th>
+                        <th>मुखिया का नाम</th>
+                        <th>ग्राम</th>
+                        <th>आधार (अंतिम 4)</th>
+                        <th>कुल नल</th>
+                        <th>मासिक टैक्स</th>
+                        <th>स्थिति</th>
+                    </tr>
+                </thead>
+                <tbody id="publicTableBody">
+                    <tr><td colspan="7">डेटा लोड हो रहा है...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 2. CONTROLLER LOGIN -->
+    <div id="loginSection" class="card hidden">
+        <h2>ग्राम कंट्रोलर लॉगिन</h2>
+        <div class="form-group">
+            <label>कंट्रोलर ईमेल ID:</label>
+            <input type="email" id="loginEmail" placeholder="controller@mpjal.in">
+        </div>
+        <div class="form-group">
+            <label>पासवर्ड:</label>
+            <input type="password" id="loginPassword" placeholder="********">
+        </div>
+        <button class="btn btn-blue" onclick="loginController()">लॉगिन करें</button>
+    </div>
+
+    <!-- 3. CONTROLLER DASHBOARD -->
+    <div id="adminSection" class="hidden">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h2>नया नल कनेक्शन जोड़ें</h2>
+                <button class="btn btn-red" onclick="logoutController()">लॉगआउट</button>
+            </div>
+            <form id="addConnectionForm">
+                <div class="form-group">
+                    <label>ग्राम का नाम:</label>
+                    <input type="text" id="village" required placeholder="ग्राम का नाम लिखें">
+                </div>
+                <div class="form-group">
+                    <label>घर के मुखिया का नाम:</label>
+                    <input type="text" id="ownerName" required placeholder="पूरा नाम">
+                </div>
+                <div class="form-group">
+                    <label>12 अंकों का आधार नंबर:</label>
+                    <input type="text" id="aadhaar" maxlength="12" pattern="\d{12}" required placeholder="123456789012">
+                </div>
+                <div class="form-group">
+                    <label>घर में नलों की संख्या:</label>
+                    <input type="number" id="tapCount" min="1" max="20" value="1" required>
+                </div>
+                <div class="form-group">
+                    <label>मासिक जल कर (₹60 प्रति नल):</label>
+                    <input type="text" id="taxDisplay" value="₹ 60" readonly>
+                </div>
+                <button type="submit" class="btn">डेटाबेस में सेव करें</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>सभी कनेक्शन और टैक्स कलेक्शन</h2>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>नाम व ग्राम</th>
+                            <th>आधार</th>
+                            <th>नल</th>
+                            <th>टैक्स</th>
+                            <th>स्थिति</th>
+                            <th>कंट्रोलर एक्शन</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAo_e0G-HoCLz0zmQrebs601-1dr5vX4tc",
+        authDomain: "mp-nal-jal-yojana.firebaseapp.com",
+        projectId: "mp-nal-jal-yojana",
+        storageBucket: "mp-nal-jal-yojana.firebasestorage.app",
+        messagingSenderId: "837415908567",
+        appId: "1:837415908567:web:f77030dd8f4d2be112ac92",
+        measurementId: "G-T037JN43G4"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const connectionsRef = collection(db, "nal_connections");
+
+    let allRecords = [];
+    const ratePerTap = 60;
+
+    document.getElementById('tapCount').addEventListener('input', (e) => {
+        const count = parseInt(e.target.value) || 1;
+        document.getElementById('taxDisplay').value = "₹ " + (count * ratePerTap);
+    });
+
+    onSnapshot(connectionsRef, (snapshot) => {
+        allRecords = [];
+        snapshot.forEach((docSnap) => {
+            allRecords.push({ docId: docSnap.id, ...docSnap.data() });
+        });
+        renderTables();
+    });
+
+    function renderTables() {
+        const publicBody = document.getElementById('publicTableBody');
+        const adminBody = document.getElementById('adminTableBody');
+        publicBody.innerHTML = '';
+        adminBody.innerHTML = '';
+
+        if (allRecords.length === 0) {
+            publicBody.innerHTML = '<tr><td colspan="7">कोई रिकॉर्ड नहीं मिला।</td></tr>';
+            return;
+        }
+
+        allRecords.forEach((rec) => {
+            const badge = rec.paid 
+                ? `<span class="badge-paid">जमा (Paid)</span>` 
+                : `<span class="badge-pending">बकाया (Pending)</span>`;
+
+            publicBody.innerHTML += `
+                <tr>
+                    <td>${rec.connId}</td>
+                    <td>${rec.name}</td>
+                    <td>${rec.village}</td>
+                    <td>XXXX-${rec.aadhaarLast4}</td>
+                    <td>${rec.taps}</td>
+                    <td>₹ ${rec.tax}</td>
+                    <td>${badge}</td>
+                </tr>
+            `;
+
+            const payBtn = rec.paid 
+                ? `<button onclick="toggleTax('${rec.docId}', false)" style="padding:4px 8px; cursor:pointer;">Unpaid करें</button>`
+                : `<button onclick="toggleTax('${rec.docId}', true)" style="background:#28a745; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;">टैक्स जमा करें</button>`;
+
+            adminBody.innerHTML += `
+                <tr>
+                    <td>${rec.connId}</td>
+                    <td>${rec.name} (${rec.village})</td>
+                    <td>XXXX-${rec.aadhaarLast4}</td>
+                    <td>${rec.taps}</td>
+                    <td>₹ ${rec.tax}</td>
+                    <td>${badge}</td>
+                    <td>
+                        ${payBtn}
+                        <button onclick="deleteRecord('${rec.docId}')" style="background:#dc3545; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; margin-left:4px;">हटाएं</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    document.getElementById('addConnectionForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const aadhaarFull = document.getElementById('aadhaar').value;
+        const taps = parseInt(document.getElementById('tapCount').value);
+        
+        const newConn = {
+            connId: 'MPNJ-' + Math.floor(1000 + Math.random() * 9000),
+            village: document.getElementById('village').value.trim(),
+            name: document.getElementById('ownerName').value.trim(),
+            aadhaarLast4: aadhaarFull.slice(-4),
+            taps: taps,
+            tax: taps * ratePerTap,
+            paid: false,
+            createdAt: new Date().toISOString()
+        };
+
+        try {
+            await addDoc(connectionsRef, newConn);
+            alert("कनेक्शन सफलतापूर्वक जुड़ गया! ID: " + newConn.connId);
+            e.target.reset();
+            document.getElementById('taxDisplay').value = "₹ 60";
+        } catch (err) {
+            alert("Error: " + err.message);
+        }
+    });
+
+    window.toggleTax = async (docId, status) => {
+        await updateDoc(doc(db, "nal_connections", docId), { paid: status });
+    };
+
+    window.deleteRecord = async (docId) => {
+        if (confirm("क्या आप वाकई इस कनेक्शन को हटाना चाहते हैं?")) {
+            await deleteDoc(doc(db, "nal_connections", docId));
+        }
+    };
+
+    window.loginController = async () => {
+        const email = document.getElementById('loginEmail').value;
+        const pass = document.getElementById('loginPassword').value;
+        try {
+            await signInWithEmailAndPassword(auth, email, pass);
+        } catch (err) {
+            alert("लॉगिन विफल: ईमेल या पासवर्ड गलत है।");
+        }
+    };
+
+    window.logoutController = async () => {
+        await signOut(auth);
+    };
+
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('adminSection').classList.remove('hidden');
+        } else {
+            document.getElementById('adminSection').classList.add('hidden');
+            if (document.querySelectorAll('.tab-btn')[1].classList.contains('active')) {
+                document.getElementById('loginSection').classList.remove('hidden');
+            }
+        }
+    });
+
+    window.switchTab = (tab) => {
+        const btns = document.querySelectorAll('.tab-btn');
+        if (tab === 'public') {
+            btns[0].classList.add('active');
+            btns[1].classList.remove('active');
+            document.getElementById('publicSection').classList.remove('hidden');
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('adminSection').classList.add('hidden');
+        } else {
+            btns[1].classList.add('active');
+            btns[0].classList.remove('active');
+            document.getElementById('publicSection').classList.add('hidden');
+            if (auth.currentUser) {
+                document.getElementById('adminSection').classList.remove('hidden');
+            } else {
+                document.getElementById('loginSection').classList.remove('hidden');
+            }
+        }
+    };
+
+    window.filterPublicTable = () => {
+        const term = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('#publicTableBody tr');
+        rows.forEach(row => {
+            row.style.display = row.innerText.toLowerCase().includes(term) ? '' : 'none';
+        });
+  
