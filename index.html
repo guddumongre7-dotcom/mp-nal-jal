@@ -14,9 +14,6 @@
         .container { max-width: 900px; margin: 15px auto; padding: 0 15px; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); margin-bottom: 20px; }
         h2 { color: #0056b3; font-size: 18px; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 8px; }
-        .tabs { display: flex; gap: 10px; margin-bottom: 15px; }
-        .tab-btn { flex: 1; padding: 10px; border: none; background: #d0d7de; cursor: pointer; font-weight: bold; border-radius: 5px; }
-        .tab-btn.active { background: #0056b3; color: white; }
         .form-group { margin-bottom: 12px; }
         label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 14px; }
         input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 15px; }
@@ -30,6 +27,7 @@
         .badge-pending { background: #dc3545; color: white; padding: 3px 7px; border-radius: 4px; font-size: 12px; }
         .hidden { display: none; }
         .table-responsive { overflow-x: auto; }
+        .section-box { margin-bottom: 25px; border-top: 4px solid #0056b3; }
     </style>
 </head>
 <body>
@@ -40,14 +38,10 @@
 </header>
 
 <div class="container">
-    <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('public')">ग्रामीण पोर्टल (बिल देखें)</button>
-        <button class="tab-btn" onclick="switchTab('admin')">ग्राम कंट्रोलर लॉगिन</button>
-    </div>
 
     <!-- 1. PUBLIC PORTAL -->
-    <div id="publicSection" class="card">
-        <h2>अपना जल कर (Water Tax) जांचें</h2>
+    <div class="card section-box">
+        <h2>ग्रामीण पोर्टल: अपना जल कर (Water Tax) जांचें</h2>
         <div class="form-group">
             <label>आधार के अंतिम 4 अंक या नाम से खोजें:</label>
             <input type="text" id="searchInput" placeholder="उदाहरण: 4589 या रमेश" onkeyup="filterPublicTable()">
@@ -72,8 +66,8 @@
         </div>
     </div>
 
-    <!-- 2. CONTROLLER LOGIN -->
-    <div id="loginSection" class="card hidden">
+    <!-- 2. CONTROLLER LOGIN SECTION -->
+    <div id="loginCard" class="card section-box">
         <h2>ग्राम कंट्रोलर लॉगिन</h2>
         <div class="form-group">
             <label>कंट्रोलर ईमेल ID:</label>
@@ -86,9 +80,9 @@
         <button class="btn btn-blue" onclick="loginController()">लॉगिन करें</button>
     </div>
 
-    <!-- 3. CONTROLLER DASHBOARD -->
+    <!-- 3. CONTROLLER DASHBOARD (Hidden until login) -->
     <div id="adminSection" class="hidden">
-        <div class="card">
+        <div class="card section-box" style="border-top-color: #28a745;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <h2>नया नल कनेक्शन जोड़ें</h2>
                 <button class="btn btn-red" onclick="logoutController()">लॉगआउट</button>
@@ -118,8 +112,8 @@
             </form>
         </div>
 
-        <div class="card">
-            <h2>सभी कनेक्शन और टैक्स कलेक्शन</h2>
+        <div class="card section-box" style="border-top-color: #28a745;">
+            <h2>सभी कनेक्शन और टैक्स कलेक्शन (कंट्रोलर पैनल)</h2>
             <div class="table-responsive">
                 <table>
                     <thead>
@@ -130,7 +124,7 @@
                             <th>नल</th>
                             <th>टैक्स</th>
                             <th>स्थिति</th>
-                            <th>कंट्रोलर एक्शन</th>
+                            <th>एक्शन</th>
                         </tr>
                     </thead>
                     <tbody id="adminTableBody"></tbody>
@@ -277,35 +271,13 @@
 
     onAuthStateChanged(auth, (user) => {
         if (user) {
-            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('loginCard').classList.add('hidden');
             document.getElementById('adminSection').classList.remove('hidden');
         } else {
+            document.getElementById('loginCard').classList.remove('hidden');
             document.getElementById('adminSection').classList.add('hidden');
-            if (document.querySelectorAll('.tab-btn')[1].classList.contains('active')) {
-                document.getElementById('loginSection').classList.remove('hidden');
-            }
         }
     });
-
-    window.switchTab = (tab) => {
-        const btns = document.querySelectorAll('.tab-btn');
-        if (tab === 'public') {
-            btns[0].classList.add('active');
-            btns[1].classList.remove('active');
-            document.getElementById('publicSection').classList.remove('hidden');
-            document.getElementById('loginSection').classList.add('hidden');
-            document.getElementById('adminSection').classList.add('hidden');
-        } else {
-            btns[1].classList.add('active');
-            btns[0].classList.remove('active');
-            document.getElementById('publicSection').classList.add('hidden');
-            if (auth.currentUser) {
-                document.getElementById('adminSection').classList.remove('hidden');
-            } else {
-                document.getElementById('loginSection').classList.remove('hidden');
-            }
-        }
-    };
 
     window.filterPublicTable = () => {
         const term = document.getElementById('searchInput').value.toLowerCase();
@@ -313,4 +285,8 @@
         rows.forEach(row => {
             row.style.display = row.innerText.toLowerCase().includes(term) ? '' : 'none';
         });
-  
+    };
+</script>
+
+</body>
+</html>
