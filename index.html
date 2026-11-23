@@ -11,23 +11,30 @@
         header { background: #0056b3; color: white; padding: 15px; text-align: center; }
         header h1 { margin: 0; font-size: 20px; }
         header p { margin: 5px 0 0; font-size: 13px; opacity: 0.9; }
-        .container { max-width: 900px; margin: 15px auto; padding: 0 15px; }
+        .container { max-width: 950px; margin: 15px auto; padding: 0 15px; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); margin-bottom: 20px; }
         h2 { color: #0056b3; font-size: 18px; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 8px; }
         .form-group { margin-bottom: 12px; }
         label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 14px; }
-        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 15px; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 15px; }
         .btn { background: #28a745; color: white; border: none; padding: 12px 18px; border-radius: 5px; cursor: pointer; font-size: 15px; font-weight: bold; width: 100%; }
         .btn-blue { background: #0056b3; }
         .btn-red { background: #dc3545; width: auto; padding: 6px 12px; font-size: 13px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        .btn-upi { background: #6f42c1; color: white; text-decoration: none; padding: 5px 10px; border-radius: 4px; font-size: 12px; display: inline-block; margin-right: 4px; }
+        .btn-receipt { background: #17a2b8; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background: #0056b3; color: white; }
-        .badge-paid { background: #28a745; color: white; padding: 3px 7px; border-radius: 4px; font-size: 12px; }
-        .badge-pending { background: #dc3545; color: white; padding: 3px 7px; border-radius: 4px; font-size: 12px; }
+        .badge-paid { background: #28a745; color: white; padding: 3px 7px; border-radius: 4px; font-size: 11px; }
+        .badge-pending { background: #dc3545; color: white; padding: 3px 7px; border-radius: 4px; font-size: 11px; }
         .hidden { display: none; }
         .table-responsive { overflow-x: auto; }
         .section-box { margin-bottom: 25px; border-top: 4px solid #0056b3; }
+        
+        /* Receipt Modal Styles */
+        #receiptModal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:1000; }
+        .receipt-card { background:white; width:90%; max-width:400px; padding:20px; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.2); }
+        .receipt-header { text-align:center; border-bottom:2px dashed #ccc; padding-bottom:10px; margin-bottom:10px; }
     </style>
 </head>
 <body>
@@ -43,20 +50,20 @@
     <div class="card section-box">
         <h2>ग्रामीण पोर्टल: अपना जल कर (Water Tax) जांचें</h2>
         <div class="form-group">
-            <label>आधार के अंतिम 4 अंक या नाम से खोजें:</label>
-            <input type="text" id="searchInput" placeholder="उदाहरण: 4589 या रमेश" onkeyup="filterPublicTable()">
+            <label>आधार के अंतिम 4 अंक या नाम / वार्ड से खोजें:</label>
+            <input type="text" id="searchInput" placeholder="उदाहरण: 4589, रमेश या वार्ड 2" onkeyup="filterPublicTable()">
         </div>
         <div class="table-responsive">
             <table>
                 <thead>
                     <tr>
-                        <th>कनेक्शन ID</th>
+                        <th>ID / वार्ड</th>
                         <th>मुखिया का नाम</th>
                         <th>ग्राम</th>
-                        <th>आधार (अंतिम 4)</th>
-                        <th>कुल नल</th>
-                        <th>मासिक टैक्स</th>
-                        <th>स्थिति</th>
+                        <th>आधार</th>
+                        <th>नल/टैक्स</th>
+                        <th>भुगतान स्थिति</th>
+                        <th>रसीद / UPI</th>
                     </tr>
                 </thead>
                 <tbody id="publicTableBody">
@@ -80,7 +87,7 @@
         <button class="btn btn-blue" onclick="loginController()">लॉगिन करें</button>
     </div>
 
-    <!-- 3. CONTROLLER DASHBOARD (Hidden until login) -->
+    <!-- 3. CONTROLLER DASHBOARD -->
     <div id="adminSection" class="hidden">
         <div class="card section-box" style="border-top-color: #28a745;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -91,6 +98,10 @@
                 <div class="form-group">
                     <label>ग्राम का नाम:</label>
                     <input type="text" id="village" required placeholder="ग्राम का नाम लिखें">
+                </div>
+                <div class="form-group">
+                    <label>वार्ड क्रमांक (Ward No.):</label>
+                    <input type="text" id="wardNo" required placeholder="जैसे: वार्ड 01">
                 </div>
                 <div class="form-group">
                     <label>घर के मुखिया का नाम:</label>
@@ -105,23 +116,25 @@
                     <input type="number" id="tapCount" min="1" max="20" value="1" required>
                 </div>
                 <div class="form-group">
-                    <label>मासिक जल कर (₹60 प्रति नल):</label>
-                    <input type="text" id="taxDisplay" value="₹ 60" readonly>
+                    <label>मासिक जल कर (₹) [अपने हिसाब से बदलें]:</label>
+                    <input type="number" id="customTax" value="60" required>
+                </div>
+                <div class="form-group">
+                    <label>ऑनलाइन भुगतान UPI ID (QR / Link के लिए):</label>
+                    <input type="text" id="upiId" placeholder="जैसे: yourname@paytm या UPI Link" value="yourupi@oksbi">
                 </div>
                 <button type="submit" class="btn">डेटाबेस में सेव करें</button>
             </form>
         </div>
 
         <div class="card section-box" style="border-top-color: #28a745;">
-            <h2>सभी कनेक्शन और टैक्स कलेक्शन (कंट्रोलर पैनल)</h2>
+            <h2>कनेक्शन प्रबंधन एवं टैक्स कलेक्शन पैनल</h2>
             <div class="table-responsive">
                 <table>
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th>ID/वार्ड</th>
                             <th>नाम व ग्राम</th>
-                            <th>आधार</th>
-                            <th>नल</th>
                             <th>टैक्स</th>
                             <th>स्थिति</th>
                             <th>एक्शन</th>
@@ -130,6 +143,23 @@
                     <tbody id="adminTableBody"></tbody>
                 </table>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- RECEIPT MODAL -->
+<div id="receiptModal" class="hidden">
+    <div class="receipt-card">
+        <div class="receipt-header">
+            <h3>MP नल जल योजना</h3>
+            <p style="margin:0; font-size:12px;">जल कर भुगतान रसीद (Water Tax Receipt)</p>
+        </div>
+        <div id="receiptContent" style="font-size:14px; line-height:1.6;">
+            <!-- Dynamic Receipt Data -->
+        </div>
+        <div style="margin-top:20px; text-align:center;">
+            <button class="btn btn-blue" onclick="window.print()" style="padding:8px 15px; font-size:13px; width:auto;">रसीद प्रिंट करें</button>
+            <button class="btn btn-red" onclick="closeReceipt()" style="padding:8px 15px; font-size:13px; width:auto; margin-left:5px;">बंद करें</button>
         </div>
     </div>
 </div>
@@ -155,11 +185,10 @@
     const connectionsRef = collection(db, "nal_connections");
 
     let allRecords = [];
-    const ratePerTap = 60;
 
     document.getElementById('tapCount').addEventListener('input', (e) => {
         const count = parseInt(e.target.value) || 1;
-        document.getElementById('taxDisplay').value = "₹ " + (count * ratePerTap);
+        document.getElementById('customTax').value = count * 60;
     });
 
     onSnapshot(connectionsRef, (snapshot) => {
@@ -186,29 +215,33 @@
                 ? `<span class="badge-paid">जमा (Paid)</span>` 
                 : `<span class="badge-pending">बकाया (Pending)</span>`;
 
+            const upiLink = `upi://pay?pa=${rec.upiId || 'yourupi@oksbi'}&pn=MPNalJal&am=${rec.tax}&cu=INR&tn=WaterTax_${rec.connId}`;
+
+            // Public Table
             publicBody.innerHTML += `
                 <tr>
-                    <td>${rec.connId}</td>
+                    <td><b>${rec.connId}</b><br><small>${rec.wardNo || ''}</small></td>
                     <td>${rec.name}</td>
                     <td>${rec.village}</td>
                     <td>XXXX-${rec.aadhaarLast4}</td>
-                    <td>${rec.taps}</td>
-                    <td>₹ ${rec.tax}</td>
+                    <td>${rec.taps} नल<br><b>₹ ${rec.tax}</b></td>
                     <td>${badge}</td>
+                    <td>
+                        <a href="${upiLink}" class="btn-upi" target="_blank">UPI Pay</a>
+                        <button class="btn-receipt" onclick="showReceipt('${rec.docId}')">रसीद</button>
+                    </td>
                 </tr>
             `;
 
+            // Admin Table
             const payBtn = rec.paid 
                 ? `<button onclick="toggleTax('${rec.docId}', false)" style="padding:4px 8px; cursor:pointer;">Unpaid करें</button>`
-                : `<button onclick="toggleTax('${rec.docId}', true)" style="background:#28a745; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;">टैक्स जमा करें</button>`;
+                : `<button onclick="toggleTax('${rec.docId}', true)" style="background:#28a745; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer;">Paid करें</button>`;
 
             adminBody.innerHTML += `
                 <tr>
-                    <td>${rec.connId}</td>
-                    <td>${rec.name} (${rec.village})</td>
-                    <td>XXXX-${rec.aadhaarLast4}</td>
-                    <td>${rec.taps}</td>
-                    <td>₹ ${rec.tax}</td>
+                    <td><b>${rec.connId}</b><br><small>${rec.wardNo}</small></td>
+                    <td>${rec.name} (${rec.village})<br>₹ ${rec.tax}</td>
                     <td>${badge}</td>
                     <td>
                         ${payBtn}
@@ -223,14 +256,17 @@
         e.preventDefault();
         const aadhaarFull = document.getElementById('aadhaar').value;
         const taps = parseInt(document.getElementById('tapCount').value);
+        const customTaxVal = parseFloat(document.getElementById('customTax').value) || 60;
         
         const newConn = {
             connId: 'MPNJ-' + Math.floor(1000 + Math.random() * 9000),
             village: document.getElementById('village').value.trim(),
+            wardNo: document.getElementById('wardNo').value.trim(),
             name: document.getElementById('ownerName').value.trim(),
             aadhaarLast4: aadhaarFull.slice(-4),
             taps: taps,
-            tax: taps * ratePerTap,
+            tax: customTaxVal,
+            upiId: document.getElementById('upiId').value.trim(),
             paid: false,
             createdAt: new Date().toISOString()
         };
@@ -239,7 +275,7 @@
             await addDoc(connectionsRef, newConn);
             alert("कनेक्शन सफलतापूर्वक जुड़ गया! ID: " + newConn.connId);
             e.target.reset();
-            document.getElementById('taxDisplay').value = "₹ 60";
+            document.getElementById('customTax').value = "60";
         } catch (err) {
             alert("Error: " + err.message);
         }
@@ -253,6 +289,27 @@
         if (confirm("क्या आप वाकई इस कनेक्शन को हटाना चाहते हैं?")) {
             await deleteDoc(doc(db, "nal_connections", docId));
         }
+    };
+
+    window.showReceipt = (docId) => {
+        const rec = allRecords.find(r => r.docId === docId);
+        if (!rec) return;
+        
+        const content = `
+            <p><b>कनेक्शन ID:</b> ${rec.connId}</p>
+            <p><b>ग्राम / वार्ड:</b> ${rec.village} (${rec.wardNo || 'N/A'})</p>
+            <p><b>मुखिया का नाम:</b> ${rec.name}</p>
+            <p><b>आधार (अंतिम 4):</b> XXXX-${rec.aadhaarLast4}</p>
+            <p><b>नलों की संख्या:</b> ${rec.taps}</p>
+            <p><b>मासिक जल कर:</b> ₹ ${rec.tax}</p>
+            <p><b>भुगतान स्थिति:</b> <span style="color:${rec.paid ? 'green' : 'red'}; font-weight:bold;">${rec.paid ? 'SUCCESSFUL (जमा है)' : 'PENDING (बाकी है)'}</span></p>
+        `;
+        document.getElementById('receiptContent').innerHTML = content;
+        document.getElementById('receiptModal').classList.remove('hidden');
+    };
+
+    window.closeReceipt = () => {
+        document.getElementById('receiptModal').classList.add('hidden');
     };
 
     window.loginController = async () => {
